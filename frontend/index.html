@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#09090f" />
+  <title>InsCleaner — Instagram Story &amp; DM Cleaner</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Top Header -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-logo">IC</div>
+        <div>
+          <div class="brand-name">InsCleaner</div>
+          <div class="brand-sub">Story Archive &amp; DM Temizleyici</div>
+        </div>
+      </div>
+
+      <div id="user-badge" class="user-badge hidden">
+        <span id="user-mode-pill" class="pill pill-demo hidden">DEMO</span>
+        <span id="user-handle" class="user-handle">@kullanici</span>
+        <button id="btn-logout" class="btn btn-ghost btn-sm" title="Çıkış Yap">Çıkış</button>
+      </div>
+    </header>
+
+    <!-- Desktop Nav -->
+    <nav id="desktop-nav" class="desktop-nav hidden">
+      <button class="nav-btn active" data-tab="dm">DM Sohbetler</button>
+      <button class="nav-btn" data-tab="search">Kelime Ara &amp; Sil</button>
+      <button class="nav-btn" data-tab="stories">Arşiv Hikayeler</button>
+      <button class="nav-btn nav-btn-danger" data-tab="allclean">All Clean</button>
+      <button class="nav-btn" data-tab="settings">Koruma &amp; Mobil</button>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="container">
+      <!-- Toast Notification -->
+      <div id="toast" class="toast hidden"></div>
+
+      <!-- AUTH VIEW -->
+      <section id="view-auth" class="auth-wrapper">
+        <div class="card auth-card">
+          <div class="auth-hero">
+            <div class="brand-logo lg">IC</div>
+            <h1>Instagram Hesabını Temizle</h1>
+            <p class="muted">
+              Eski arşiv hikayelerini, DM sohbetlerini ve belirli kelimeleri içeren mesajları hem PC hem mobilden güvenle sil.
+            </p>
+          </div>
+
+          <div class="seg-tabs">
+            <button class="seg-btn active" data-auth-tab="session">Session ID (Önerilen)</button>
+            <button class="seg-btn" data-auth-tab="creds">Kullanıcı Adı / Şifre</button>
+            <button class="seg-btn" data-auth-tab="demo">Demo Modu</button>
+          </div>
+
+          <!-- Session Cookie Form -->
+          <form id="form-session" class="auth-form">
+            <label class="field-label" for="input-sessionid">Instagram <code>sessionid</code> Çerezi</label>
+            <input
+              id="input-sessionid"
+              type="password"
+              class="input"
+              placeholder="Örn: 1234567890%3AAbcDef..."
+              autocomplete="off"
+              required
+            />
+            <details class="help-box">
+              <summary>sessionid nasıl alınır? (Şifre paylaşmadan güvenli giriş)</summary>
+              <ol>
+                <li>Tarayıcında <strong>instagram.com</strong>'a giriş yap.</li>
+                <li><strong>Kolay Yol:</strong> Proje içindeki <code>extension/</code> tarayıcı eklentisini yükleyip tek tıkla kopyala.</li>
+                <li><strong>Manuel Yol (PC):</strong> F12 &rarr; Application (Uygulama) &rarr; Cookies &rarr; <code>https://www.instagram.com</code> &rarr; <code>sessionid</code> değerini kopyala.</li>
+              </ol>
+            </details>
+            <button type="submit" class="btn btn-primary btn-block">Session ID ile Bağlan</button>
+          </form>
+
+          <!-- Credentials Form -->
+          <form id="form-creds" class="auth-form hidden">
+            <label class="field-label" for="input-username">Kullanıcı Adı</label>
+            <input id="input-username" type="text" class="input" placeholder="kullanici_adin" autocomplete="username" required />
+
+            <label class="field-label" for="input-password">Şifre</label>
+            <input id="input-password" type="password" class="input" placeholder="••••••••" autocomplete="current-password" required />
+
+            <div id="twofa-group" class="hidden">
+              <label class="field-label" for="input-2fa">2FA Doğrulama Kodu</label>
+              <input id="input-2fa" type="text" class="input" placeholder="6 haneli kod" inputmode="numeric" />
+            </div>
+
+            <p class="hint-text">
+              Not: Instagram güvenlik doğrulaması (Challenge) isterse <strong>Session ID</strong> sekmesini kullanmak en sorunsuz yöntemdir.
+            </p>
+            <button type="submit" class="btn btn-primary btn-block">Giriş Yap</button>
+          </form>
+
+          <!-- Demo Mode Panel -->
+          <div id="panel-demo" class="auth-form hidden">
+            <div class="info-banner">
+              <strong>Gerçek hesabına dokunmadan dene!</strong>
+              <p>Örnek DM sohbetleri, aranabilir mesajlar ("iban", "adres", "şifre") ve 10 adet arşiv hikaye ile tüm özellikleri anında test edebilirsin.</p>
+            </div>
+            <button id="btn-start-demo" type="button" class="btn btn-primary btn-block">Demo Modunu Başlat</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- APP VIEWS (when authenticated) -->
+      <div id="app-views" class="hidden">
+        <!-- LIVE JOB STATUS PANEL -->
+        <section id="job-panel" class="card job-panel hidden">
+          <div class="job-header">
+            <div>
+              <span id="job-status-pill" class="pill">Çalışıyor</span>
+              <strong id="job-title">Temizlik Görevi</strong>
+            </div>
+            <div class="job-controls">
+              <button id="btn-job-pause" class="btn btn-ghost btn-sm">Duraklat</button>
+              <button id="btn-job-resume" class="btn btn-primary btn-sm hidden">Devam Et</button>
+              <button id="btn-job-stop" class="btn btn-danger btn-sm">Durdur</button>
+              <button id="btn-job-close" class="btn btn-ghost btn-sm hidden">Kapat</button>
+            </div>
+          </div>
+
+          <div class="progress-track">
+            <div id="job-progress-bar" class="progress-fill" style="width: 0%"></div>
+          </div>
+
+          <div class="job-meta">
+            <span id="job-action-text" class="muted">Hazırlanıyor...</span>
+            <span id="job-counts" class="job-counts">0 / 0</span>
+          </div>
+
+          <div id="job-logs" class="log-box"></div>
+        </section>
+
+        <!-- TAB 1: DM THREADS -->
+        <section id="tab-dm" class="tab-view">
+          <div class="section-header">
+            <div>
+              <h2>DM Sohbetleri</h2>
+              <p class="muted">Sohbetleri filtrele, koruma listesine ekle veya topluca sil.</p>
+            </div>
+            <button id="btn-refresh-dm" class="btn btn-ghost">Yenile</button>
+          </div>
+
+          <div class="card toolbar-card">
+            <input id="dm-filter-input" type="search" class="input" placeholder="Kullanıcı adı veya mesaj ara..." />
+            <div class="toolbar-row">
+              <button id="btn-dm-select-all" class="btn btn-ghost btn-sm">Tümünü Seç</button>
+              <button id="btn-dm-select-unprotected" class="btn btn-ghost btn-sm">Korunanlar Hariç Seç</button>
+              <button id="btn-dm-clear-sel" class="btn btn-ghost btn-sm">Seçimi Temizle</button>
+            </div>
+            <div class="toggle-row">
+              <label class="switch-label">
+                <input id="dm-unsend-first" type="checkbox" />
+                <span>Sohbeti silmeden önce kendi mesajlarımı da geri al (Unsend)</span>
+              </label>
+              <label class="switch-label">
+                <input id="dm-dry-run" type="checkbox" />
+                <span>Önizleme (Dry-Run) modu — gerçekten silme</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="dm-list" class="item-list"></div>
+
+          <div id="dm-action-bar" class="sticky-action-bar hidden">
+            <span id="dm-selected-count">0 sohbet seçildi</span>
+            <button id="btn-dm-delete" class="btn btn-danger">Seçili Sohbetleri Sil</button>
+          </div>
+        </section>
+
+        <!-- TAB 2: KEYWORD SEARCH & UNSEND -->
+        <section id="tab-search" class="tab-view hidden">
+          <div class="section-header">
+            <div>
+              <h2>DM Kelime Ara &amp; Mesaj Sil</h2>
+              <p class="muted">Arattığın kelimeyi içeren mesajları tüm DM sohbetlerinde bul ve tek tıkla geri al (Unsend).</p>
+            </div>
+          </div>
+
+          <form id="form-dm-search" class="card toolbar-card">
+            <div class="search-row">
+              <input
+                id="search-keyword-input"
+                type="text"
+                class="input"
+                placeholder="Kelime yaz (örn: iban, adres, şifre, telefon)..."
+                required
+              />
+              <button type="submit" class="btn btn-primary">Mesajları Tara</button>
+            </div>
+            <div class="toggle-row">
+              <label class="switch-label">
+                <input id="search-only-mine" type="checkbox" checked />
+                <span>Sadece benim gönderdiğim mesajlar (geri alınabilir)</span>
+              </label>
+              <label class="switch-label">
+                <input id="search-case-sensitive" type="checkbox" />
+                <span>Büyük/küçük harf duyarlı</span>
+              </label>
+              <label class="switch-label">
+                <input id="search-dry-run" type="checkbox" />
+                <span>Önizleme (Dry-Run) modu</span>
+              </label>
+            </div>
+          </form>
+
+          <div id="search-results-header" class="toolbar-row hidden" style="margin-bottom: 10px;">
+            <span id="search-results-count" class="muted">0 eşleşme</span>
+            <div>
+              <button id="btn-search-select-all" class="btn btn-ghost btn-sm">Tümünü Seç</button>
+              <button id="btn-search-clear-sel" class="btn btn-ghost btn-sm">Temizle</button>
+            </div>
+          </div>
+
+          <div id="search-results-list" class="item-list"></div>
+
+          <div id="search-action-bar" class="sticky-action-bar hidden">
+            <span id="search-selected-count">0 mesaj seçildi</span>
+            <button id="btn-search-unsend" class="btn btn-danger">Seçili Mesajları Geri Al</button>
+          </div>
+        </section>
+
+        <!-- TAB 3: STORY ARCHIVE -->
+        <section id="tab-stories" class="tab-view hidden">
+          <div class="section-header">
+            <div>
+              <h2>Arşiv Hikayeler (Story Archive)</h2>
+              <p class="muted">Eski hikayelerini tarihe göre filtrele ve topluca sil.</p>
+            </div>
+            <button id="btn-refresh-stories" class="btn btn-ghost">Yenile</button>
+          </div>
+
+          <div class="card toolbar-card">
+            <div class="chip-row" id="story-age-chips">
+              <button class="chip active" data-days="0">Tümü</button>
+              <button class="chip" data-days="30">30 Günden Eski</button>
+              <button class="chip" data-days="180">6 Aydan Eski</button>
+              <button class="chip" data-days="365">1 Yıldan Eski</button>
+            </div>
+            <div class="toolbar-row">
+              <div class="date-filter-wrap">
+                <label class="muted" for="story-before-date">Şu tarihten öncekiler:</label>
+                <input id="story-before-date" type="date" class="input input-sm" />
+              </div>
+              <div class="btn-group">
+                <button id="btn-story-select-all" class="btn btn-ghost btn-sm">Görünenleri Seç</button>
+                <button id="btn-story-clear-sel" class="btn btn-ghost btn-sm">Seçimi Temizle</button>
+              </div>
+            </div>
+            <label class="switch-label">
+              <input id="story-dry-run" type="checkbox" />
+              <span>Önizleme (Dry-Run) modu — gerçekten silme</span>
+            </label>
+          </div>
+
+          <div id="stories-grid" class="stories-grid"></div>
+
+          <div id="story-action-bar" class="sticky-action-bar hidden">
+            <span id="story-selected-count">0 hikaye seçildi</span>
+            <button id="btn-story-delete" class="btn btn-danger">Seçili Hikayeleri Sil</button>
+          </div>
+        </section>
+
+        <!-- TAB 4: ALL CLEAN -->
+        <section id="tab-allclean" class="tab-view hidden">
+          <div class="section-header">
+            <div>
+              <h2>All Clean — Tam Temizlik</h2>
+              <p class="muted">Tek seferde tüm DM sohbetlerini ve arşivlenmiş eski hikayelerini temizle.</p>
+            </div>
+          </div>
+
+          <div class="card danger-card">
+            <div class="warning-box">
+              <strong>Dikkat:</strong> Gerçek hesapta silinen DM sohbetleri ve arşiv hikayeler Instagram tarafından geri getirilemez. Önce <strong>Önizleme (Dry-Run)</strong> modunda denemen önerilir.
+            </div>
+
+            <div class="check-stack">
+              <label class="check-card">
+                <input id="ac-dm-threads" type="checkbox" checked />
+                <div>
+                  <strong>Tüm DM Sohbetlerini Sil</strong>
+                  <p class="muted">Gelen kutundaki tüm konuşmaları temizler.</p>
+                </div>
+              </label>
+
+              <label class="check-card">
+                <input id="ac-unsend-mine" type="checkbox" />
+                <div>
+                  <strong>Kendi Gönderdiğim Mesajları da Geri Al (Unsend)</strong>
+                  <p class="muted">Sohbeti silmeden önce karşı taraftan da görünmemesi için kendi mesajlarını geri alır (daha uzun sürer).</p>
+                </div>
+              </label>
+
+              <label class="check-card">
+                <input id="ac-stories" type="checkbox" checked />
+                <div>
+                  <strong>Arşivdeki Tüm Eski Hikayeleri Sil</strong>
+                  <p class="muted">Story arşivindeki tüm fotoğraf ve videoları temizler.</p>
+                </div>
+              </label>
+
+              <label class="check-card">
+                <input id="ac-respect-whitelist" type="checkbox" checked />
+                <div>
+                  <strong>Koruma Listesini (Whitelist) Uygula</strong>
+                  <p class="muted">Koruma listesine eklediğin arkadaşlarının DM sohbetleri All Clean sırasında kesinlikle silinmez.</p>
+                </div>
+              </label>
+
+              <label class="check-card">
+                <input id="ac-dry-run" type="checkbox" checked />
+                <div>
+                  <strong>Önizleme (Dry-Run) Modu</strong>
+                  <p class="muted">Açıkken hiçbir şey gerçekten silinmez; sadece nelerin silineceğini canlı loglarda görürsün.</p>
+                </div>
+              </label>
+            </div>
+
+            <button id="btn-start-allclean" class="btn btn-danger btn-block btn-lg">
+              All Clean Temizliğini Başlat
+            </button>
+          </div>
+        </section>
+
+        <!-- TAB 5: SETTINGS, WHITELIST & MOBILE -->
+        <section id="tab-settings" class="tab-view hidden">
+          <div class="section-header">
+            <div>
+              <h2>Koruma Listesi &amp; Mobil Erişim</h2>
+              <p class="muted">Anti-ban hız ayarları, koruma listesi ve telefondan bağlantı adresi.</p>
+            </div>
+          </div>
+
+          <!-- Mobile Access Card -->
+          <div class="card">
+            <h3>Telefondan / Mobilden Kullanım</h3>
+            <p class="muted" style="margin: 6px 0 12px;">
+              Telefonun bu bilgisayarla aynı Wi-Fi ağındaysa aşağıdaki adresi telefonunun tarayıcısında açıp <strong>"Ana Ekrana Ekle"</strong> diyerek mobil uygulama gibi kullanabilirsin.
+            </p>
+            <div class="copy-row">
+              <input id="mobile-url-input" type="text" class="input" readonly value="Yükleniyor..." />
+              <button id="btn-copy-mobile-url" class="btn btn-primary">Kopyala</button>
+            </div>
+          </div>
+
+          <!-- Whitelist Card -->
+          <div class="card">
+            <h3>Koruma Listesi (Whitelist) Nedir?</h3>
+            <p class="muted" style="margin: 6px 0 12px;">
+              Silinmesini <strong>istemediğin</strong> yakın arkadaşlarını veya önemli hesapları buraya eklersin. <strong>All Clean</strong> çalıştırdığında bu kişilerin DM sohbetleri otomatik olarak atlanır ve korunur.
+            </p>
+            <form id="form-whitelist" class="search-row">
+              <input id="whitelist-input" type="text" class="input" placeholder="Kullanıcı adı (örn: ahmet_yilmaz)" required />
+              <button type="submit" class="btn btn-primary">Korumaya Ekle</button>
+            </form>
+            <div id="whitelist-chips" class="chip-row" style="margin-top: 12px;"></div>
+          </div>
+
+          <!-- Anti-Ban Delay Settings -->
+          <div class="card">
+            <h3>Anti-Ban Gecikme Ayarları</h3>
+            <p class="muted" style="margin: 6px 0 12px;">
+              Instagram'ın hesabını geçici olarak kısıtlamaması (Action Block) için her silme işlemi arasında rastgele bekleme süresi uygulanır.
+            </p>
+            <div class="delay-grid">
+              <div>
+                <label class="field-label" for="setting-min-delay">En Az Bekleme (saniye)</label>
+                <input id="setting-min-delay" type="number" class="input" min="1" max="30" step="0.5" value="2.5" />
+              </div>
+              <div>
+                <label class="field-label" for="setting-max-delay">En Fazla Bekleme (saniye)</label>
+                <input id="setting-max-delay" type="number" class="input" min="1" max="60" step="0.5" value="5.5" />
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav id="mobile-nav" class="mobile-nav hidden">
+      <button class="mnav-btn active" data-tab="dm">
+        <span class="mnav-icon">💬</span>
+        <span>DM</span>
+      </button>
+      <button class="mnav-btn" data-tab="search">
+        <span class="mnav-icon">🔍</span>
+        <span>Kelime</span>
+      </button>
+      <button class="mnav-btn" data-tab="stories">
+        <span class="mnav-icon">🕒</span>
+        <span>Arşiv</span>
+      </button>
+      <button class="mnav-btn" data-tab="allclean">
+        <span class="mnav-icon">🧹</span>
+        <span>All Clean</span>
+      </button>
+      <button class="mnav-btn" data-tab="settings">
+        <span class="mnav-icon">🛡️</span>
+        <span>Ayarlar</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "InsCleaner Helper",
+  "version": "1.0.0",
+  "description": "Instagram sessionid çerezini tek tıkla kopyalar ve InsCleaner panelini açar.",
+  "permissions": ["cookies", "tabs"],
+  "host_permissions": ["https://*.instagram.com/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "InsCleaner Helper"
+  }
+}
